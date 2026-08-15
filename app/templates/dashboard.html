@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Review queue — antijudolinator{% endblock %}
+{% block content %}
+<h1>Review queue</h1>
+{% if not pending %}
+  <p class="empty">Nothing waiting for review.</p>
+{% else %}
+  {% for message in pending %}
+  <div class="card">
+    <div class="meta">{{ message.supporter }} · Rp{{ message.amount }} · {{ message.created_at.strftime("%Y-%m-%d %H:%M") }}</div>
+    <div class="text">{{ message.raw_message }}</div>
+    <div class="actions">
+      <form method="post" action="/dashboard/messages/{{ message.id }}/confirm-gambling">
+        <button type="submit" class="confirm-gambling">Confirm gambling</button>
+      </form>
+      <form method="post" action="/dashboard/messages/{{ message.id }}/confirm-clean">
+        <button type="submit" class="confirm-clean">Not gambling</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

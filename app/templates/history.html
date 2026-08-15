@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}History — antijudolinator{% endblock %}
+{% block content %}
+<h1>History</h1>
+{% if not reviewed %}
+  <p class="empty">No reviewed messages yet.</p>
+{% else %}
+  {% for message in reviewed %}
+  <div class="card">
+    <div class="meta">
+      {{ message.supporter }} · Rp{{ message.amount }} · {{ message.created_at.strftime("%Y-%m-%d %H:%M") }} ·
+      {% if message.review_result == "confirmed_gambling" %}
+        <span style="color: var(--danger);">confirmed gambling</span>
+      {% else %}
+        <span style="color: var(--ok);">confirmed clean</span>
+      {% endif %}
+    </div>
+    <div class="text">{{ message.raw_message }}</div>
+  </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Donation overlay</title>
+  <style>
+    html, body { margin: 0; background: transparent; overflow: hidden; }
+    #alert {
+      font-family: system-ui, sans-serif;
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(15, 18, 22, 0.92);
+      color: #fff;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      min-width: 280px;
+      max-width: 480px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    #alert.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #alert .supporter { font-weight: 600; font-size: 1.1rem; }
+    #alert .amount { color: #5b8cff; margin-left: 0.5rem; }
+    #alert .message { margin-top: 0.4rem; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <div id="alert">
+    <span class="supporter"></span><span class="amount"></span>
+    <div class="message"></div>
+  </div>
+  <script>
+    const overlayToken = "{{ overlay_token }}";
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const socket = new WebSocket(`${protocol}//${location.host}/ws/overlay/${overlayToken}`);
+    const alertBox = document.getElementById("alert");
+    let hideTimer = null;
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      alertBox.querySelector(".supporter").textContent = data.supporter || "Anonymous";
+      alertBox.querySelector(".amount").textContent = data.amount ? `Rp${data.amount}` : "";
+      alertBox.querySelector(".message").textContent = data.message || "";
+      alertBox.classList.add("visible");
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => alertBox.classList.remove("visible"), 8000);
+    };
+  </script>
+</body>
+</html>

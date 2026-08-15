@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in — antijudolinator</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container" style="max-width: 360px; margin-top: 4rem;">
+    <h1>antijudolinator</h1>
+    <div class="card">
+      {% if error %}<p style="color: var(--danger);">{{ error }}</p>{% endif %}
+      <form method="post" action="/login">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required autofocus>
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit" class="btn">Log in</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

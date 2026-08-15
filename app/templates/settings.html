@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Settings — antijudolinator{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<div class="card">
+  <label>Sociabuzz webhook URL — paste this into sociabuzz's webhook settings</label>
+  <code class="url">{{ webhook_url }}</code>
+  <label>OBS overlay URL — add this as a Browser Source in OBS</label>
+  <code class="url">{{ overlay_url }}</code>
+</div>
+{% endblock %}

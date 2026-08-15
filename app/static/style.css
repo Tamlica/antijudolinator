@@ -1,0 +1,91 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0f1216;
+  --panel: #171b21;
+  --border: #2a2f38;
+  --text: #e6e9ef;
+  --muted: #9aa4b2;
+  --accent: #5b8cff;
+  --danger: #ff5b6e;
+  --ok: #37c07a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+nav a { color: var(--muted); text-decoration: none; }
+nav a:hover { color: var(--text); }
+nav form { margin-left: auto; }
+
+h1 { font-size: 1.4rem; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.card .meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.4rem; }
+.card .text { font-size: 1rem; margin-bottom: 0.75rem; word-break: break-word; }
+
+.actions { display: flex; gap: 0.5rem; }
+
+button, .btn {
+  border: 1px solid var(--border);
+  background: #1e232b;
+  color: var(--text);
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+button.confirm-gambling { border-color: var(--danger); color: var(--danger); }
+button.confirm-clean { border-color: var(--ok); color: var(--ok); }
+button:hover { filter: brightness(1.2); }
+
+input[type=text], input[type=password] {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #10141a;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
+
+.empty { color: var(--muted); padding: 2rem 0; text-align: center; }
+
+code.url {
+  display: block;
+  background: #10141a;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 1rem;
+  word-break: break-all;
+}
