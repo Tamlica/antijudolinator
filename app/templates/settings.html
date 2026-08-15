@@ -8,4 +8,117 @@
   <label>OBS overlay URL — add this as a Browser Source in OBS</label>
   <code class="url">{{ overlay_url }}</code>
 </div>
+
+<div class="card">
+  <h2 style="margin-top: 0;">Overlay design</h2>
+  <p style="color: var(--muted); font-size: 0.85rem;">
+    Paste HTML/CSS for your alert box. Use
+    <code>{% raw %}{{supporter}}{% endraw %}</code>,
+    <code>{% raw %}{{amount}}{% endraw %}</code>, and
+    <code>{% raw %}{{message}}{% endraw %}</code> anywhere — they're replaced
+    with the real donation details each time an alert fires.
+  </p>
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+    <form method="post" action="/dashboard/settings/overlay-template" style="flex: 1 1 320px;">
+      <textarea id="overlay-template-input" name="overlay_template" rows="10"
+        style="width: 100%; font-family: ui-monospace, monospace; font-size: 0.85rem;">{{ overlay_template }}</textarea>
+      <div class="actions" style="margin-top: 0.5rem;">
+        <button type="submit" class="btn">Save</button>
+        <button type="button" id="reset-template-btn" data-default="{{ default_template }}">Reset to default</button>
+        <button type="button" id="ai-prompt-btn">Prompt for AI</button>
+      </div>
+    </form>
+    <div style="flex: 1 1 320px;">
+      <iframe id="overlay-preview-frame" sandbox
+        style="width: 100%; height: 220px; border: 1px solid var(--border); border-radius: 8px; background: #0b0d11;"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+  const templateInput = document.getElementById("overlay-template-input");
+  const resetBtn = document.getElementById("reset-template-btn");
+  const aiPromptBtn = document.getElementById("ai-prompt-btn");
+  const previewFrame = document.getElementById("overlay-preview-frame");
+  let debounceTimer = null;
+
+  const AI_PROMPT = `I'm building a custom HTML donation-alert overlay for OBS. Please generate an HTML/CSS snippet (no <html>, <head>, or <body> tags -- just the inner markup and an optional <style> block) for a donation alert box, with these requirements:
+
+- Use the literal placeholder tokens {% raw %}{{supporter}}, {{amount}}, and {{message}}{% endraw %} wherever the donor's name, donation amount, and donation message should appear. They get substituted automatically -- don't treat them as variables or wrap them in quotes.
+- The snippet is inserted into a div with id="content", inside an outer div with id="alert" that already provides: fixed position at the bottom-center of the screen, a dark semi-transparent rounded box (background, padding, border-radius, box-shadow), and an automatic fade-in/fade-out animation (shows for about 8 seconds, no JavaScript required). You don't need to recreate any of that -- just style what goes inside it.
+- If you want to fully replace the outer box's look (different background, no padding, different position, etc.), you can include a <style> block that targets #alert directly -- it will override the defaults.
+- Do not include <script> tags -- JavaScript will not execute in this overlay, so everything must be achievable with HTML and CSS only (CSS animations/transitions are fine).
+- Keep it reasonably compact -- the box works best around 280-480px wide.
+
+Please return just the HTML/CSS snippet, ready to paste directly into a "custom overlay template" field.`;
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    const scratch = document.createElement("textarea");
+    scratch.value = text;
+    scratch.style.position = "fixed";
+    scratch.style.opacity = "0";
+    document.body.appendChild(scratch);
+    scratch.focus();
+    scratch.select();
+    document.execCommand("copy");
+    document.body.removeChild(scratch);
+    return Promise.resolve();
+  }
+
+  aiPromptBtn.addEventListener("click", () => {
+    copyToClipboard(AI_PROMPT).then(() => {
+      const original = aiPromptBtn.textContent;
+      aiPromptBtn.textContent = "Copied!";
+      setTimeout(() => { aiPromptBtn.textContent = original; }, 2000);
+    });
+  });
+
+  function wrapPreview(innerHtml) {
+    return `<!doctype html><html><head><style>
+      html, body { margin: 0; background: #0b0d11; }
+      #alert {
+        font-family: system-ui, sans-serif;
+        position: absolute;
+        bottom: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 18, 22, 0.92);
+        color: #fff;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        min-width: 280px;
+        max-width: 480px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      }
+      #alert .supporter { font-weight: 600; font-size: 1.1rem; }
+      #alert .amount { color: #5b8cff; margin-left: 0.5rem; }
+      #alert .message { margin-top: 0.4rem; font-size: 0.95rem; }
+    </style></head><body><div id="alert">${innerHtml}</div></body></html>`;
+  }
+
+  async function updatePreview() {
+    const response = await fetch("/dashboard/settings/overlay-template/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "template=" + encodeURIComponent(templateInput.value),
+    });
+    const rendered = await response.text();
+    previewFrame.srcdoc = wrapPreview(rendered);
+  }
+
+  templateInput.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(updatePreview, 300);
+  });
+
+  resetBtn.addEventListener("click", () => {
+    templateInput.value = resetBtn.dataset.default;
+    updatePreview();
+  });
+
+  updatePreview();
+</script>
 {% endblock %}

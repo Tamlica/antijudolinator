@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Form, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from app.auth import get_current_user, get_user_by_username, login, logout, veri
 from app.classifier.learn import learn_from_confirmation
 from app.db import get_session
 from app.models import Message, User
+from app.overlay_template import DEFAULT_TEMPLATE, PREVIEW_SAMPLE, render_overlay_html
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -125,5 +126,32 @@ def settings_page(request: Request, user: User = Depends(require_login)):
             "user": user,
             "webhook_url": f"{base_url}/webhook/sociabuzz/{user.webhook_token}",
             "overlay_url": f"{base_url}/overlay/{user.overlay_token}",
+            "overlay_template": user.overlay_template or DEFAULT_TEMPLATE,
+            "default_template": DEFAULT_TEMPLATE,
         },
     )
+
+
+@router.post("/dashboard/settings/overlay-template")
+def save_overlay_template(
+    overlay_template: str = Form(""),
+    user: User = Depends(require_login),
+    session: Session = Depends(get_session),
+):
+    user.overlay_template = overlay_template.strip() or None
+    session.commit()
+    return RedirectResponse("/dashboard/settings", status_code=303)
+
+
+@router.post("/dashboard/settings/overlay-template/preview")
+def preview_overlay_template(
+    template: str = Form(""),
+    user: User = Depends(require_login),
+):
+    rendered = render_overlay_html(
+        template,
+        PREVIEW_SAMPLE["supporter"],
+        PREVIEW_SAMPLE["amount"],
+        PREVIEW_SAMPLE["message"],
+    )
+    return HTMLResponse(rendered)

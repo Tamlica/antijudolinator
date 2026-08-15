@@ -29,21 +29,19 @@
 </head>
 <body>
   <div id="alert">
-    <span class="supporter"></span><span class="amount"></span>
-    <div class="message"></div>
+    <div id="content"></div>
   </div>
   <script>
     const overlayToken = "{{ overlay_token }}";
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
     const socket = new WebSocket(`${protocol}//${location.host}/ws/overlay/${overlayToken}`);
     const alertBox = document.getElementById("alert");
+    const content = document.getElementById("content");
     let hideTimer = null;
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      alertBox.querySelector(".supporter").textContent = data.supporter || "Anonymous";
-      alertBox.querySelector(".amount").textContent = data.amount ? `Rp${data.amount}` : "";
-      alertBox.querySelector(".message").textContent = data.message || "";
+      content.innerHTML = data.html;
       alertBox.classList.add("visible");
       clearTimeout(hideTimer);
       hideTimer = setTimeout(() => alertBox.classList.remove("visible"), 8000);

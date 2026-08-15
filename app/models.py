@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -37,6 +38,7 @@ class User(Base):
         String(64), unique=True, index=True, default=_random_token
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    overlay_template: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     messages: Mapped[list["Message"]] = relationship(back_populates="user")

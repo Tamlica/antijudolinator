@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.classifier.classify import classify_message
 from app.db import get_session
 from app.models import Message, User
+from app.overlay_template import DEFAULT_TEMPLATE, render_overlay_html
 from app.ws_manager import manager
 
 router = APIRouter()
@@ -45,13 +46,12 @@ async def receive_sociabuzz_donation(
     session.refresh(message)
 
     if result.status == "clean":
-        await manager.push(
-            user.overlay_token,
-            {
-                "supporter": message.supporter,
-                "amount": message.amount,
-                "message": message.raw_message,
-            },
+        rendered_html = render_overlay_html(
+            user.overlay_template or DEFAULT_TEMPLATE,
+            message.supporter,
+            message.amount,
+            message.raw_message,
         )
+        await manager.push(user.overlay_token, {"html": rendered_html})
 
     return {"status": message.status, "message_id": message.id}
