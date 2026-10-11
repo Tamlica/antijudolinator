@@ -16,9 +16,13 @@ html, body { margin: 0; background: transparent; overflow: hidden; }
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   overflow-wrap: anywhere;
   opacity: 0;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 #alert.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 #alert .supporter { font-weight: 600; font-size: 1.1rem; }
 #alert .amount { color: #5b8cff; margin-left: 0.5rem; }
 #alert .message { margin-top: 0.4rem; font-size: 0.95rem; }
+@media (prefers-reduced-motion: reduce) {
+  #alert { transition: opacity 0.15s linear; transform: translateX(-50%); }
+  #alert.visible { transform: translateX(-50%); }
+}

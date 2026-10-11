@@ -1,22 +1,35 @@
 {% extends "base.html" %}
 {% block title %}History — antijudolinator{% endblock %}
 {% block content %}
-<h1>History</h1>
+<div class="page-head">
+  <h1>History</h1>
+  <p class="dek">Donations you've already reviewed.</p>
+</div>
+
 {% if not reviewed %}
   <p class="empty">No reviewed messages yet.</p>
 {% else %}
-  {% for message in reviewed %}
-  <div class="card">
-    <div class="meta">
-      {{ message.supporter }} · Rp{{ message.amount }} · {{ message.created_at.strftime("%Y-%m-%d %H:%M") }} ·
-      {% if message.review_result == "confirmed_gambling" %}
-        <span style="color: var(--danger);">confirmed gambling</span>
-      {% else %}
-        <span style="color: var(--ok);">confirmed clean</span>
-      {% endif %}
-    </div>
-    <div class="text">{{ message.raw_message }}</div>
-  </div>
-  {% endfor %}
+  <table class="ledger">
+    <thead>
+      <tr><th>When</th><th>Supporter</th><th class="num">Amount</th><th>Message</th><th>Verdict</th></tr>
+    </thead>
+    <tbody>
+      {% for message in reviewed %}
+      <tr>
+        <td class="mono tight">{{ message.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+        <td>{{ message.supporter }}</td>
+        <td class="mono num">{{ message.amount | rupiah or "—" }}</td>
+        <td class="message-cell">{{ message.raw_message }}</td>
+        <td class="tight">
+          {% if message.review_result == "confirmed_gambling" %}
+          <span class="stamp">Gambling</span>
+          {% else %}
+          <span class="stamp is-clean">Clean</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endif %}
 {% endblock %}

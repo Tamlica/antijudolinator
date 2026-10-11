@@ -1,34 +1,34 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin — patterns</title>
-  <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-  <nav>
-    <a href="/admin/users">Users</a>
-    <a href="/admin/patterns">Patterns</a>
-    <form method="post" action="/logout"><button type="submit">Log out</button></form>
-  </nav>
-  <div class="container">
-    <h1>Patterns</h1>
-    <p class="hint">Shared by every streamer. Delete any word that blocks normal donations.</p>
-    {% for pattern, creator in patterns %}
-    <div class="card">
-      <div class="meta">{{ creator or "seed" }} · confirmed {{ pattern.match_count }}× · {{ pattern.created_at.strftime("%Y-%m-%d") }}</div>
-      <div class="actions">
-        <div class="text" style="flex: 1; margin: 0;">{{ pattern.pattern_text }}</div>
-        <form method="post" action="/admin/patterns/{{ pattern.id }}/delete"
-          onsubmit="return confirm('Delete pattern {{ pattern.pattern_text }}?')">
-          <button type="submit" class="confirm-gambling">Delete</button>
-        </form>
-      </div>
-    </div>
-    {% else %}
-    <p class="empty">No patterns yet.</p>
-    {% endfor %}
-  </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Patterns — antijudolinator{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Patterns</h1>
+  <p class="dek">Shared by every streamer. Delete any word that blocks normal donations.</p>
+</div>
+
+{% if not patterns %}
+  <p class="empty">No patterns yet.</p>
+{% else %}
+  <table class="ledger">
+    <thead>
+      <tr><th>Pattern</th><th>Added by</th><th class="num">Confirmed</th><th>Added</th><th><span class="visually-hidden">Delete</span></th></tr>
+    </thead>
+    <tbody>
+      {% for pattern, creator in patterns %}
+      <tr>
+        <td class="mono">{{ pattern.pattern_text }}</td>
+        <td data-label="Added by">{{ creator or "seed" }}</td>
+        <td class="mono num" data-label="Confirmed">{{ pattern.match_count }}×</td>
+        <td class="mono tight" data-label="Added">{{ pattern.created_at.strftime("%Y-%m-%d") }}</td>
+        <td class="tight">
+          <form method="post" action="/admin/patterns/{{ pattern.id }}/delete"
+            onsubmit="return confirm('Delete pattern {{ pattern.pattern_text }}?')">
+            <button type="submit" class="btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+{% endblock %}

@@ -4,17 +4,16 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
 from app.db import DB_PATH, get_session
 from app.models import User
+from app.templating import templates
 from app.ws_manager import manager
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 # Lives next to the DB so it's inside the Docker data volume.
 SOUND_UPLOAD_DIR = Path(DB_PATH).parent / "uploads" / "sounds"

@@ -1,24 +1,52 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Log in — antijudolinator</title>
-  <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-  <div class="container" style="max-width: 360px; margin-top: 4rem;">
-    <h1>antijudolinator</h1>
-    <div class="card">
-      {% if error %}<p style="color: var(--danger);">{{ error }}</p>{% endif %}
-      <form method="post" action="/login">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" required autofocus>
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" required>
-        <button type="submit" class="btn">Log in</button>
-      </form>
-    </div>
-  </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Log in — antijudolinator{% endblock %}
+{% block masthead %}{% endblock %}
+{% block main_class %}front{% endblock %}
+{% block content %}
+<header class="nameplate">
+  <h1>The Antijudolinator</h1>
+</header>
+<div class="edition">
+  <span>{{ today().strftime("%A, %d %B %Y") }}</span>
+  <span>Edisi bebas judol</span>
+  <button type="button" class="btn-quiet" data-theme-toggle>Theme</button>
+</div>
+
+<div class="front-grid">
+  <section class="lead" aria-labelledby="lead-title">
+    <h2 id="lead-title">Donations, read before they air.</h2>
+    <p class="dek">Every Sociabuzz donation is checked against a shared list of judol words.
+      Clean ones go straight to your OBS alert; promos wait here for you to review.</p>
+
+    <p class="specimen-caption">Example: how three donations come through</p>
+    <ul class="specimen">
+      <li class="sample">
+        <div class="byline"><strong>Rina</strong> · Rp10.000</div>
+        <p>Semangat streamnya kak, ditunggu main bareng lagi!</p>
+      </li>
+      <li class="sample is-blocked">
+        <div class="byline"><strong>m4xw1n_88</strong> · Rp5.000</div>
+        <p>GACOR hari ini! s l o t 8 8 pasti maxwin, daftar sekarang</p>
+        <span class="stamp-big">Diblokir</span>
+      </li>
+      <li class="sample">
+        <div class="byline"><strong>Anonymous</strong> · Rp25.000</div>
+        <p>Buat beli kopi, terima kasih udah nemenin malam ini.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="signin" aria-labelledby="signin-title">
+    <h2 id="signin-title">Log in</h2>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <form method="post" action="/login">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required autofocus autocomplete="username">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required autocomplete="current-password">
+      <button type="submit" class="btn btn-primary">Log in</button>
+    </form>
+    <p class="hint">No account? Ask the admin of this server to create one for you.</p>
+  </section>
+</div>
+{% endblock %}

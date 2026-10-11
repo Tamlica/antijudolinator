@@ -4,19 +4,67 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}antijudolinator{% endblock %}</title>
+  <script>try { var t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Newsreader:opsz,wght@6..72,500;6..72,700;6..72,800&family=Public+Sans:wght@400;600&display=swap">
+  <link rel="stylesheet" href="/static/tokens.css">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  {% block nav %}
-  <nav>
-    <a href="/dashboard">Queue</a>
-    <a href="/dashboard/history">History</a>
-    <a href="/dashboard/settings">Settings</a>
-    <form method="post" action="/logout"><button type="submit">Log out</button></form>
-  </nav>
+  {% macro navlink(href, label) -%}
+  <a href="{{ href }}"{% if request.url.path == href %} aria-current="page"{% endif %}>{{ label }}</a>
+  {%- endmacro %}
+  {% macro theme_toggle() -%}
+  <button type="button" class="btn-quiet" data-theme-toggle>Theme</button>
+  {%- endmacro %}
+
+  {% block masthead %}
+  {% set me = user or admin %}
+  <header class="masthead">
+    <div class="masthead-top">
+      <a class="wordmark" href="/dashboard">The Antijudolinator</a>
+      <span class="dateline">{{ today().strftime("%A, %d %B %Y") }}</span>
+    </div>
+    <nav class="sections" aria-label="Main">
+      {{ navlink("/dashboard", "Queue") }}
+      {{ navlink("/dashboard/history", "History") }}
+      {{ navlink("/dashboard/settings", "Settings") }}
+      {% if me and me.role == "admin" %}
+      <span class="divider" aria-hidden="true"></span>
+      {{ navlink("/admin/users", "Users") }}
+      {{ navlink("/admin/patterns", "Patterns") }}
+      {% endif %}
+      <span class="nav-end">
+        {{ theme_toggle() }}
+        <form method="post" action="/logout"><button type="submit" class="btn-quiet">Log out</button></form>
+      </span>
+    </nav>
+  </header>
   {% endblock %}
-  <div class="container">
+
+  <main class="{% block main_class %}page{% endblock %}">
     {% block content %}{% endblock %}
-  </div>
+  </main>
+
+  <footer class="colophon">The Antijudolinator · judol spam stays off stream · patterns are shared by every streamer on this server</footer>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const isDark = () => root.dataset.theme
+        ? root.dataset.theme === "dark"
+        : matchMedia("(prefers-color-scheme: dark)").matches;
+      document.querySelectorAll("[data-theme-toggle]").forEach((toggle) => {
+        const label = () => { toggle.textContent = isDark() ? "Light mode" : "Dark mode"; };
+        toggle.addEventListener("click", () => {
+          root.dataset.theme = isDark() ? "light" : "dark";
+          try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+          label();
+        });
+        label();
+      });
+    })();
+  </script>
 </body>
 </html>

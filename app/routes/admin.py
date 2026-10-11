@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Form, HTTPException
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 from starlette.requests import Request
@@ -9,9 +8,9 @@ from app.auth import get_user_by_username, hash_password
 from app.db import get_session
 from app.models import Message, Pattern, User
 from app.routes.dashboard import require_login
+from app.templating import templates
 
 router = APIRouter(prefix="/admin")
-templates = Jinja2Templates(directory="app/templates")
 
 
 def require_admin(user: User = Depends(require_login)) -> User:

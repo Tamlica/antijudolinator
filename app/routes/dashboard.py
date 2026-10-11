@@ -4,7 +4,6 @@ from pathlib import Path
 from anyio import from_thread
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.requests import Request
@@ -34,10 +33,10 @@ from app.overlay_template import (
     render_overlay_html,
 )
 from app.routes.overlay import SOUND_UPLOAD_DIR, UPLOADED_SOUND_PREFIX
+from app.templating import templates
 from app.ws_manager import manager
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 
 def require_login(request: Request, session: Session = Depends(get_session)) -> User:
