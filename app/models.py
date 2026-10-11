@@ -38,6 +38,8 @@ class User(Base):
         String(64), unique=True, index=True, default=random_token
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Sent by sociabuzz in the Sb-Webhook-Token header; when set, webhooks without it are rejected.
+    sociabuzz_webhook_token: Mapped[str | None] = mapped_column(String(128), nullable=True)
     overlay_template: Mapped[str | None] = mapped_column(Text, nullable=True)
     alert_duration_seconds: Mapped[int] = mapped_column(Integer, default=8)
     # /static/sounds/<builtin>.wav, /uploads/sounds/<file>, or an external https URL

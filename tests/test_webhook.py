@@ -124,3 +124,24 @@ def test_overlay_socket_rejects_unknown_token(client):
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/ws/overlay/not-a-real-token") as ws:
             ws.receive_json()
+
+
+def test_webhook_requires_matching_sociabuzz_token_once_set(client, db_session):
+    user = _make_user(db_session)
+    user.sociabuzz_webhook_token = "sbwhook-secret"
+    db_session.commit()
+    url = f"/webhook/sociabuzz/{user.webhook_token}"
+    body = {"message": "halo", "amount": 1000, "supporter": "A"}
+
+    assert client.post(url, json=body).status_code == 401
+    assert client.post(url, json=body, headers={"Sb-Webhook-Token": "wrong"}).status_code == 401
+    assert client.post(url, json=body, headers={"Sb-Webhook-Token": "sbwhook-secret"}).status_code == 200
+    assert db_session.query(Message).filter_by(user_id=user.id).count() == 1
+
+
+def test_webhook_accepts_requests_without_header_when_token_not_set(client, db_session):
+    user = _make_user(db_session)
+    response = client.post(
+        f"/webhook/sociabuzz/{user.webhook_token}", json={"message": "halo", "supporter": "A"}
+    )
+    assert response.status_code == 200

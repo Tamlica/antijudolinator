@@ -1,5 +1,7 @@
+import secrets
+
 from anyio import from_thread
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -26,6 +28,7 @@ class SociabuzzPayload(BaseModel):
 def receive_sociabuzz_donation(
     webhook_token: str,
     payload: SociabuzzPayload,
+    sb_webhook_token: str | None = Header(None),
     session: Session = Depends(get_session),
 ):
     user = session.scalar(
@@ -33,6 +36,12 @@ def receive_sociabuzz_donation(
     )
     if user is None:
         raise HTTPException(status_code=404, detail="Unknown webhook token")
+
+    expected = user.sociabuzz_webhook_token
+    if expected is not None and not secrets.compare_digest(
+        (sb_webhook_token or "").encode(), expected.encode()
+    ):
+        raise HTTPException(status_code=401, detail="Invalid Sb-Webhook-Token")
 
     if payload.id is not None:
         existing = session.scalar(

@@ -22,7 +22,7 @@ No linter/formatter is configured.
 ## Architecture
 
 Request flow for a donation (`app/routes/webhook.py`):
-1. `POST /webhook/sociabuzz/{webhook_token}` → look up active user by token.
+1. `POST /webhook/sociabuzz/{webhook_token}` → look up active user by token. If the user saved their sociabuzz token in settings, the request's `Sb-Webhook-Token` header must match it (401 otherwise). Real sociabuzz payloads also carry `currency`, `amount_settled`, `email_supporter`, `media_*`, `item`, etc.; the app ignores those. Sociabuzz's "test webhook" button always resends the same `id`, so only the first test is stored.
 2. `classifier.classify.classify_message` → `normalize.words()` splits the text into folded words, then `match.find_match()` checks them against all DB patterns (sorted longest-first). Matching is **word-based** to avoid cross-word false positives — see the rules in `match.py`'s docstring (short patterns only match whole words/word edges; fuzzy and in-word substring only for 5+ chars).
 3. Every message is stored as a `Message` with status `clean` or `gambling`. A sociabuzz `id` in the payload is stored as `external_id` and used to ignore webhook retries.
 4. Only `clean` messages become an alert: `overlay_template.build_alert_payload` returns `{html, duration_ms, sound_url, volume, tts_text}` from the user's template (`{{supporter}}`/`{{amount}}`/`{{message}}` placeholders, values HTML-escaped, amount as `Rp50.000`) and alert settings, and it's pushed over WebSocket (`ws_manager.manager`, in-process, keyed by overlay token) to `/ws/overlay/{overlay_token}`. The settings page's "Send test alert" uses the same function.

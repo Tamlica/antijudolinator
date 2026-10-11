@@ -224,3 +224,17 @@ def test_settings_page_lists_presets_and_shows_notices(client, db_session):
     assert 'class="error"' in response.text
     for name in ("Card", "Neon", "Minimal"):
         assert f'<option value="{name}">' in response.text
+
+
+def test_saving_and_clearing_sociabuzz_token(client, db_session):
+    user = _make_user(db_session)
+    _login(client)
+
+    client.post("/dashboard/settings/sociabuzz-token", data={"sociabuzz_webhook_token": " sbwhook-abc "})
+    db_session.refresh(user)
+    assert user.sociabuzz_webhook_token == "sbwhook-abc"
+    assert "sbwhook-abc" not in client.get("/dashboard/settings").text  # never echoed back
+
+    client.post("/dashboard/settings/sociabuzz-token", data={"sociabuzz_webhook_token": ""})
+    db_session.refresh(user)
+    assert user.sociabuzz_webhook_token is None

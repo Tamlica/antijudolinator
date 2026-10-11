@@ -26,6 +26,7 @@ def init_db() -> None:
     _ensure_column(engine, "users", "alert_volume", "INTEGER NOT NULL DEFAULT 80")
     _ensure_column(engine, "users", "tts_enabled", "BOOLEAN NOT NULL DEFAULT 0")
     _ensure_column(engine, "users", "tts_min_amount", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(engine, "users", "sociabuzz_webhook_token", "VARCHAR(128)")
     _ensure_column(engine, "messages", "external_id", "VARCHAR(128)")
     with engine.begin() as conn:
         conn.execute(text(

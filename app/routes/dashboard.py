@@ -199,6 +199,8 @@ _SETTINGS_NOTICES = {  # key -> (text, is_error)
     "test-no-overlay": ("No overlay is connected. Is the OBS Browser Source open?", True),
     "password-changed": ("Password changed.", False),
     "password-wrong": ("Current password is incorrect.", True),
+    "sociabuzz-token-saved": ("Sociabuzz token saved - webhooks without it are now rejected.", False),
+    "sociabuzz-token-cleared": ("Sociabuzz token removed - webhooks are no longer verified.", True),
     "webhook-regenerated": ("New webhook URL generated - update it in sociabuzz.", False),
     "overlay-regenerated": ("New overlay URL generated - update your OBS Browser Source.", False),
 }
@@ -216,6 +218,18 @@ def change_password(
     user.password_hash = hash_password(new_password)
     session.commit()
     return RedirectResponse("/dashboard/settings?notice=password-changed", status_code=303)
+
+
+@router.post("/dashboard/settings/sociabuzz-token")
+def save_sociabuzz_token(
+    sociabuzz_webhook_token: str = Form("", max_length=128),
+    user: User = Depends(require_login),
+    session: Session = Depends(get_session),
+):
+    user.sociabuzz_webhook_token = sociabuzz_webhook_token.strip() or None
+    session.commit()
+    notice = "sociabuzz-token-saved" if user.sociabuzz_webhook_token else "sociabuzz-token-cleared"
+    return RedirectResponse(f"/dashboard/settings?notice={notice}", status_code=303)
 
 
 @router.post("/dashboard/settings/regenerate/{which}")

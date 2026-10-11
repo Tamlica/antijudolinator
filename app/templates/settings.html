@@ -7,6 +7,17 @@
 <div class="card">
   <label>Sociabuzz webhook URL — paste this into sociabuzz's webhook settings</label>
   <code class="url">{{ webhook_url }}</code>
+  <form method="post" action="/dashboard/settings/sociabuzz-token" style="margin-bottom: 1rem;">
+    <label for="sociabuzz_webhook_token">Sociabuzz webhook token — copy it from sociabuzz's webhook settings (starts with <code>sbwhook-</code>)</label>
+    {% if not user.sociabuzz_webhook_token %}
+    <p class="error" style="margin-top: 0;">Not set: anyone who learns your webhook URL can send fake donations.</p>
+    {% endif %}
+    <div class="inline-form">
+      <input type="password" id="sociabuzz_webhook_token" name="sociabuzz_webhook_token" maxlength="128"
+        autocomplete="off" placeholder="{{ 'Saved — paste a new one to replace, or save empty to remove' if user.sociabuzz_webhook_token else 'sbwhook-...' }}">
+      <button type="submit">Save token</button>
+    </div>
+  </form>
   <label>OBS overlay URL — add this as a Browser Source in OBS</label>
   <code class="url">{{ overlay_url }}</code>
   <p class="hint">In OBS, tick <b>"Control audio via OBS"</b> on the Browser Source so you hear the sound and voice.
