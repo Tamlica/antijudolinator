@@ -5,12 +5,21 @@
 {% if not pending %}
   <p class="empty">Nothing waiting for review.</p>
 {% else %}
-  {% for message in pending %}
+  <p class="hint">Tick only the words that are clearly gambling promo (site names, "gacor"...).
+    They're added to the filter for every streamer, so leave normal words like names or greetings unticked.</p>
+  {% for message, candidates in pending %}
   <div class="card">
     <div class="meta">{{ message.supporter }} · Rp{{ message.amount }} · {{ message.created_at.strftime("%Y-%m-%d %H:%M") }}</div>
     <div class="text">{{ message.raw_message }}</div>
     <div class="actions">
       <form method="post" action="/dashboard/messages/{{ message.id }}/confirm-gambling">
+        {% if candidates %}
+        <div class="word-picks">
+          {% for word in candidates %}
+          <label class="word-pick"><input type="checkbox" name="learn_words" value="{{ word }}"> {{ word }}</label>
+          {% endfor %}
+        </div>
+        {% endif %}
         <button type="submit" class="confirm-gambling">Confirm gambling</button>
       </form>
       <form method="post" action="/dashboard/messages/{{ message.id }}/confirm-clean">

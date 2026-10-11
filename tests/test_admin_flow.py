@@ -49,3 +49,42 @@ def test_admin_can_disable_a_user(client, db_session):
 
     db_session.refresh(target)
     assert target.is_active is False
+
+
+def test_creating_duplicate_username_shows_error(client, db_session):
+    _make_admin(db_session)
+    client.post("/login", data={"username": "root", "password": "pw"})
+
+    response = client.post("/admin/users", data={"username": "root", "password": "pw2"})
+
+    assert response.status_code == 400
+    assert "already taken" in response.text
+
+
+def test_admin_can_reset_a_users_password(client, db_session):
+    _make_admin(db_session)
+    target = User(username="temp", password_hash=hash_password("pw"), role="user")
+    db_session.add(target)
+    db_session.commit()
+
+    client.post("/login", data={"username": "root", "password": "pw"})
+    client.post(f"/admin/users/{target.id}/password", data={"new_password": "resetpass1"})
+    client.post("/logout")
+
+    assert client.post(
+        "/login", data={"username": "temp", "password": "resetpass1"}, follow_redirects=False
+    ).status_code == 303
+
+
+def test_admin_can_delete_a_pattern(client, db_session):
+    from app.classifier.store import get_pattern_by_text
+
+    _make_admin(db_session)
+    client.post("/login", data={"username": "root", "password": "pw"})
+    pattern = get_pattern_by_text(db_session, "gacor")
+
+    assert "gacor" in client.get("/admin/patterns").text
+    client.post(f"/admin/patterns/{pattern.id}/delete")
+
+    db_session.expire_all()
+    assert get_pattern_by_text(db_session, "gacor") is None

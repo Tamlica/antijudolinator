@@ -1,11 +1,12 @@
-"""Normalize text so obfuscated gambling-promo messages fold to a matchable form."""
+"""Normalize text so obfuscated gambling-promo messages fold to matchable words."""
 
 import re
 import unicodedata
 
 _ZERO_WIDTH = {"​", "‌", "‍", "﻿"}
 
-_CONFUSABLES = {
+# Folded before splitting into words, since "$" and "@" would otherwise split them.
+_LOOKALIKES = {
     # Greek lookalikes
     "α": "a", "Α": "a", "β": "b", "Β": "b", "ε": "e", "Ε": "e",
     "η": "h", "Η": "h", "ι": "i", "Ι": "i", "κ": "k", "Κ": "k",
@@ -17,31 +18,43 @@ _CONFUSABLES = {
     "м": "m", "М": "m", "н": "h", "Н": "h", "о": "o", "О": "o",
     "р": "p", "Р": "p", "с": "c", "С": "c", "т": "t", "Т": "t",
     "у": "y", "У": "y", "х": "x", "Х": "x", "ѕ": "s", "Ѕ": "s",
-    # Leetspeak digits/symbols
-    "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t",
-    "8": "b", "$": "s", "@": "a",
+    # Symbols
+    "$": "s", "@": "a",
 }
 
-_SEPARATORS_RE = re.compile(r"[\s\.\-_,;:'\"`~^*+=/\\]+")
-_WORD_SPLIT_RE = re.compile(r"[^\w]+", re.UNICODE)
+# Folded per word, after number-like suffixes ("slot88") are stripped.
+_LEET_DIGITS = {"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "8": "b"}
+
+_WORD_SPLIT_RE = re.compile(r"[\W_]+", re.UNICODE)
+_EDGE_DIGITS_RE = re.compile(r"^\d{2,}|\d{2,}$")
 _REPEATED_CHAR_RE = re.compile(r"(.)\1+")
 
 
-def _fold(text: str) -> str:
-    text = unicodedata.normalize("NFKC", text)
-    text = "".join(c for c in text if c not in _ZERO_WIDTH)
-    text = "".join(_CONFUSABLES.get(c, c) for c in text)
-    return text.lower()
-
-
-def normalize(text: str) -> str:
-    text = _fold(text)
-    text = _SEPARATORS_RE.sub("", text)
-    text = _REPEATED_CHAR_RE.sub(r"\1", text)
-    return text
-
-
 def words(text: str) -> list[str]:
-    text = _fold(text)
-    tokens = [t for t in _WORD_SPLIT_RE.split(text) if t]
-    return [_REPEATED_CHAR_RE.sub(r"\1", t) for t in tokens]
+    text = unicodedata.normalize("NFKC", text)
+    text = "".join(_LOOKALIKES.get(c, c) for c in text if c not in _ZERO_WIDTH)
+
+    tokens: list[str] = []
+    for raw in _WORD_SPLIT_RE.split(text):
+        raw = _EDGE_DIGITS_RE.sub("", raw)
+        if not raw or raw.isdigit():
+            continue
+        token = "".join(_LEET_DIGITS.get(c, c) for c in raw).lower()
+        tokens.append(_REPEATED_CHAR_RE.sub(r"\1", token))
+    return _merge_spelled_out_letters(tokens)
+
+
+def _merge_spelled_out_letters(tokens: list[str]) -> list[str]:
+    """Rejoin "s l o t" / "s.l.o.t" into "slot"."""
+    merged: list[str] = []
+    run = ""
+    for token in tokens + [""]:
+        if len(token) == 1:
+            run += token
+            continue
+        if run:
+            merged.append(_REPEATED_CHAR_RE.sub(r"\1", run))
+            run = ""
+        if token:
+            merged.append(token)
+    return merged

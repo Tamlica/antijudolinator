@@ -22,12 +22,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+SESSION_SECRET_KEY = os.environ.get("SESSION_SECRET_KEY")
+if not SESSION_SECRET_KEY:
+    raise RuntimeError("SESSION_SECRET_KEY must be set (see .env.example)")
+
 app = FastAPI(title="antijudolinator", lifespan=lifespan)
 
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=os.environ.get("SESSION_SECRET_KEY", "dev-secret-change-me"),
-)
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 

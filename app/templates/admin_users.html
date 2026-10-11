@@ -9,10 +9,12 @@
 <body>
   <nav>
     <a href="/admin/users">Users</a>
+    <a href="/admin/patterns">Patterns</a>
     <form method="post" action="/logout"><button type="submit">Log out</button></form>
   </nav>
   <div class="container">
     <h1>Users</h1>
+    {% if error %}<p style="color: var(--danger);">{{ error }}</p>{% endif %}
     <div class="card">
       <form method="post" action="/admin/users">
         <label for="username">New user's username</label>
@@ -28,6 +30,10 @@
       <div class="actions">
         <form method="post" action="/admin/users/{{ u.id }}/toggle-active">
           <button type="submit" class="btn">{{ "Disable" if u.is_active else "Enable" }}</button>
+        </form>
+        <form method="post" action="/admin/users/{{ u.id }}/password" class="inline-form">
+          <input type="password" name="new_password" placeholder="New password" required minlength="8" autocomplete="new-password">
+          <button type="submit" class="btn">Reset password</button>
         </form>
       </div>
     </div>

@@ -6,7 +6,6 @@ def test_extracts_distinctive_tokens_dropping_stopwords():
         "main",
         "slot",
         "gacor",
-        "yuk",
     ]
 
 

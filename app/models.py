@@ -20,7 +20,7 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _random_token() -> str:
+def random_token() -> str:
     return secrets.token_urlsafe(24)
 
 
@@ -32,13 +32,19 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(16), default="user")
     webhook_token: Mapped[str] = mapped_column(
-        String(64), unique=True, index=True, default=_random_token
+        String(64), unique=True, index=True, default=random_token
     )
     overlay_token: Mapped[str] = mapped_column(
-        String(64), unique=True, index=True, default=_random_token
+        String(64), unique=True, index=True, default=random_token
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     overlay_template: Mapped[str | None] = mapped_column(Text, nullable=True)
+    alert_duration_seconds: Mapped[int] = mapped_column(Integer, default=8)
+    # /static/sounds/<builtin>.wav, /uploads/sounds/<file>, or an external https URL
+    alert_sound_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    alert_volume: Mapped[int] = mapped_column(Integer, default=80)  # 0-100
+    tts_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    tts_min_amount: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     messages: Mapped[list["Message"]] = relationship(back_populates="user")
@@ -61,6 +67,8 @@ class Message(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # sociabuzz's donation id, so webhook retries don't create duplicates
+    external_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     supporter: Mapped[str] = mapped_column(String(255))
     amount: Mapped[int] = mapped_column(Integer, default=0)
     raw_message: Mapped[str] = mapped_column(String(2000))

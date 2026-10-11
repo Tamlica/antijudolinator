@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from app.classifier.match import find_match
-from app.classifier.normalize import normalize
+from app.classifier.normalize import words
 from app.classifier.store import get_pattern_by_text, list_pattern_texts
 from app.models import Pattern
 
@@ -16,9 +16,9 @@ class ClassificationResult:
 
 
 def classify_message(session: Session, raw_message: str) -> ClassificationResult:
-    normalized = normalize(raw_message)
-    patterns = list_pattern_texts(session)
-    matched_text = find_match(normalized, patterns)
+    tokens = words(raw_message)
+    normalized = " ".join(tokens)
+    matched_text = find_match(tokens, list_pattern_texts(session))
 
     if matched_text is None:
         return ClassificationResult("clean", normalized, None)

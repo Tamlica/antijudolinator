@@ -66,7 +66,7 @@ button.confirm-gambling { border-color: var(--danger); color: var(--danger); }
 button.confirm-clean { border-color: var(--ok); color: var(--ok); }
 button:hover { filter: brightness(1.2); }
 
-input[type=text], input[type=password] {
+input[type=text], input[type=password], input[type=number], input[type=url], select {
   width: 100%;
   padding: 0.55rem 0.7rem;
   border-radius: 6px;
@@ -77,6 +77,15 @@ input[type=text], input[type=password] {
 }
 
 label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
+
+.hint { color: var(--muted); font-size: 0.85rem; }
+.notice { color: var(--ok); }
+.error { color: var(--danger); }
+input[type=file], input[type=range] { display: block; width: 100%; margin-bottom: 0.75rem; }
+.word-picks { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; margin-bottom: 0.5rem; }
+.word-pick { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--text); margin: 0; }
+.inline-form { display: flex; gap: 0.5rem; }
+.inline-form input { margin-bottom: 0; }
 
 .empty { color: var(--muted); padding: 2rem 0; text-align: center; }
 

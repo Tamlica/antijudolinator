@@ -18,9 +18,17 @@ class OverlayConnectionManager:
         if not connections:
             self._connections.pop(overlay_token, None)
 
-    async def push(self, overlay_token: str, payload: dict) -> None:
+    async def push(self, overlay_token: str, payload: dict) -> int:
+        """Send to every open overlay for this token; returns how many received it."""
+        delivered = 0
         for websocket in list(self._connections.get(overlay_token, [])):
-            await websocket.send_json(payload)
+            try:
+                await websocket.send_json(payload)
+                delivered += 1
+            except Exception:
+                # A half-closed OBS socket must not fail the webhook (sociabuzz would retry).
+                self.disconnect(overlay_token, websocket)
+        return delivered
 
 
 manager = OverlayConnectionManager()

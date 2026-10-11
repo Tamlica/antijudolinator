@@ -49,7 +49,7 @@ def test_webhook_pushes_rendered_html_using_default_template(client, db_session)
         payload = ws.receive_json()
 
     assert "Dedi" in payload["html"]
-    assert "Rp2000" in payload["html"]
+    assert "Rp2.000" in payload["html"]
     assert "semangat terus kak" in payload["html"]
 
 
@@ -65,7 +65,7 @@ def test_webhook_pushes_rendered_html_using_users_custom_template(client, db_ses
         )
         payload = ws.receive_json()
 
-    assert payload["html"] == "Donatur: Rian | Rp3000 | makasih kak"
+    assert payload["html"] == "Donatur: Rian | Rp3.000 | makasih kak"
 
 
 def test_webhook_escapes_html_in_donor_supplied_fields(client, db_session):
@@ -92,3 +92,35 @@ def test_webhook_rejects_unknown_token(client):
         json={"message": "hello", "amount": 100, "supporter": "X"},
     )
     assert response.status_code == 404
+
+
+def test_webhook_retry_with_same_id_is_not_stored_twice(client, db_session):
+    user = _make_user(db_session)
+    body = {"id": "sb-123", "message": "semangat kak", "amount": 1000, "supporter": "A"}
+
+    first = client.post(f"/webhook/sociabuzz/{user.webhook_token}", json=body).json()
+    second = client.post(f"/webhook/sociabuzz/{user.webhook_token}", json=body).json()
+
+    assert second["message_id"] == first["message_id"]
+    assert second["duplicate"] is True
+    assert db_session.query(Message).filter_by(user_id=user.id).count() == 1
+
+
+def test_overlay_page_sends_csp_that_blocks_template_scripts(client, db_session):
+    user = _make_user(db_session)
+
+    response = client.get(f"/overlay/{user.overlay_token}")
+
+    csp = response.headers["content-security-policy"]
+    assert "script-src 'nonce-" in csp
+    nonce = csp.split("'nonce-")[1].split("'")[0]
+    assert f'<script nonce="{nonce}">' in response.text
+
+
+def test_overlay_socket_rejects_unknown_token(client):
+    import pytest
+    from starlette.websockets import WebSocketDisconnect
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/ws/overlay/not-a-real-token") as ws:
+            ws.receive_json()

@@ -21,6 +21,17 @@ def _ensure_column(engine: Engine, table: str, column: str, ddl_type: str) -> No
 def init_db() -> None:
     Base.metadata.create_all(engine)
     _ensure_column(engine, "users", "overlay_template", "TEXT")
+    _ensure_column(engine, "users", "alert_duration_seconds", "INTEGER NOT NULL DEFAULT 8")
+    _ensure_column(engine, "users", "alert_sound_url", "VARCHAR(512)")
+    _ensure_column(engine, "users", "alert_volume", "INTEGER NOT NULL DEFAULT 80")
+    _ensure_column(engine, "users", "tts_enabled", "BOOLEAN NOT NULL DEFAULT 0")
+    _ensure_column(engine, "users", "tts_min_amount", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(engine, "messages", "external_id", "VARCHAR(128)")
+    with engine.begin() as conn:
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_messages_user_external_id "
+            "ON messages (user_id, external_id)"
+        ))
 
 
 def get_session() -> Generator[Session, None, None]:

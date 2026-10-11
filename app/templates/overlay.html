@@ -3,49 +3,86 @@
 <head>
   <meta charset="utf-8">
   <title>Donation overlay</title>
-  <style>
-    html, body { margin: 0; background: transparent; overflow: hidden; }
-    #alert {
-      font-family: system-ui, sans-serif;
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: rgba(15, 18, 22, 0.92);
-      color: #fff;
-      border-radius: 12px;
-      padding: 1rem 1.5rem;
-      min-width: 280px;
-      max-width: 480px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-      opacity: 0;
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-    #alert.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
-    #alert .supporter { font-weight: 600; font-size: 1.1rem; }
-    #alert .amount { color: #5b8cff; margin-left: 0.5rem; }
-    #alert .message { margin-top: 0.4rem; font-size: 0.95rem; }
-  </style>
+  <link rel="stylesheet" href="/static/overlay.css">
 </head>
 <body>
   <div id="alert">
     <div id="content"></div>
   </div>
-  <script>
+  <script nonce="{{ nonce }}">
     const overlayToken = "{{ overlay_token }}";
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    const socket = new WebSocket(`${protocol}//${location.host}/ws/overlay/${overlayToken}`);
     const alertBox = document.getElementById("alert");
     const content = document.getElementById("content");
-    let hideTimer = null;
+    const FADE_MS = 400;
+    const MAX_AUDIO_MS = 30000;  // never let a broken sound or voice stall the queue
+    const queue = [];
+    let showing = false;
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      content.innerHTML = data.html;
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    function playAudio(url, volume) {
+      return new Promise((resolve) => {
+        const audio = new Audio(url);
+        audio.volume = volume;
+        audio.onended = audio.onerror = resolve;
+        audio.play().catch(resolve);
+        setTimeout(resolve, MAX_AUDIO_MS);
+      });
+    }
+
+    // Load voices early; Chrome fills the list asynchronously.
+    if (window.speechSynthesis) speechSynthesis.getVoices();
+
+    function speak(text, volume) {
+      const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+      const voice = voices.find((v) => v.lang.toLowerCase().startsWith("id"));
+      if (!voice) {
+        // OBS's built-in browser usually has no speech voices, so fall back to Google Translate's
+        // TTS audio. ponytail: unofficial endpoint, swap for a paid TTS API if it stops working.
+        const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=id&q="
+          + encodeURIComponent(text);
+        return playAudio(url, volume);
+      }
+      return new Promise((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+        utterance.volume = volume;
+        utterance.onend = utterance.onerror = resolve;
+        speechSynthesis.speak(utterance);
+        setTimeout(resolve, MAX_AUDIO_MS);
+      });
+    }
+
+    async function showNext() {
+      if (showing || queue.length === 0) return;
+      showing = true;
+      const alert = queue.shift();
+      content.innerHTML = alert.html;
       alertBox.classList.add("visible");
-      clearTimeout(hideTimer);
-      hideTimer = setTimeout(() => alertBox.classList.remove("visible"), 8000);
-    };
+
+      const minimumShowTime = sleep(alert.duration_ms || 8000);
+      if (alert.sound_url) await playAudio(alert.sound_url, alert.volume ?? 1);
+      if (alert.tts_text) await speak(alert.tts_text, alert.volume ?? 1);
+      await minimumShowTime;
+
+      alertBox.classList.remove("visible");
+      await sleep(FADE_MS);
+      showing = false;
+      showNext();
+    }
+
+    function connect() {
+      const socket = new WebSocket(`${protocol}//${location.host}/ws/overlay/${overlayToken}`);
+      socket.onmessage = (event) => {
+        queue.push(JSON.parse(event.data));
+        showNext();
+      };
+      socket.onclose = () => setTimeout(connect, 3000);
+    }
+
+    connect();
   </script>
 </body>
 </html>

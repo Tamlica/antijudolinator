@@ -1,3 +1,4 @@
+from anyio import from_thread
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -6,20 +7,23 @@ from sqlalchemy.orm import Session
 from app.classifier.classify import classify_message
 from app.db import get_session
 from app.models import Message, User
-from app.overlay_template import DEFAULT_TEMPLATE, render_overlay_html
+from app.overlay_template import build_alert_payload
 from app.ws_manager import manager
 
 router = APIRouter()
 
 
 class SociabuzzPayload(BaseModel):
+    id: str | None = None
     message: str
     amount: int = 0
     supporter: str = ""
 
 
+# Sync handler: FastAPI runs it in a worker thread, so the DB work and pattern
+# scan don't block the event loop that serves the overlay WebSockets.
 @router.post("/webhook/sociabuzz/{webhook_token}")
-async def receive_sociabuzz_donation(
+def receive_sociabuzz_donation(
     webhook_token: str,
     payload: SociabuzzPayload,
     session: Session = Depends(get_session),
@@ -30,10 +34,18 @@ async def receive_sociabuzz_donation(
     if user is None:
         raise HTTPException(status_code=404, detail="Unknown webhook token")
 
+    if payload.id is not None:
+        existing = session.scalar(
+            select(Message).where(Message.user_id == user.id, Message.external_id == payload.id)
+        )
+        if existing is not None:
+            return {"status": existing.status, "message_id": existing.id, "duplicate": True}
+
     result = classify_message(session, payload.message)
 
     message = Message(
         user_id=user.id,
+        external_id=payload.id,
         supporter=payload.supporter,
         amount=payload.amount,
         raw_message=payload.message,
@@ -46,12 +58,7 @@ async def receive_sociabuzz_donation(
     session.refresh(message)
 
     if result.status == "clean":
-        rendered_html = render_overlay_html(
-            user.overlay_template or DEFAULT_TEMPLATE,
-            message.supporter,
-            message.amount,
-            message.raw_message,
-        )
-        await manager.push(user.overlay_token, {"html": rendered_html})
+        alert = build_alert_payload(user, message.supporter, message.amount, message.raw_message)
+        from_thread.run(manager.push, user.overlay_token, alert)
 
     return {"status": message.status, "message_id": message.id}

@@ -7,6 +7,7 @@ os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
 import pytest
 from fastapi.testclient import TestClient
 
+from app import auth
 from app.db import SessionLocal, engine
 from app.main import app
 from app.models import Base
@@ -16,6 +17,7 @@ from app.models import Base
 def client():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+    auth._failed_logins.clear()
     with TestClient(app) as test_client:
         yield test_client
 

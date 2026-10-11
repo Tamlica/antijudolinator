@@ -1,0 +1,24 @@
+/* Shared by the OBS overlay page and the settings-page preview, so they can't drift apart. */
+html, body { margin: 0; background: transparent; overflow: hidden; }
+
+#alert {
+  font-family: system-ui, sans-serif;
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(15, 18, 22, 0.92);
+  color: #fff;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  min-width: 280px;
+  max-width: 480px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  overflow-wrap: anywhere;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+#alert.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+#alert .supporter { font-weight: 600; font-size: 1.1rem; }
+#alert .amount { color: #5b8cff; margin-left: 0.5rem; }
+#alert .message { margin-top: 0.4rem; font-size: 0.95rem; }

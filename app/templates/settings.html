@@ -2,52 +2,164 @@
 {% block title %}Settings — antijudolinator{% endblock %}
 {% block content %}
 <h1>Settings</h1>
+{% if notice %}<p class="{{ 'error' if notice[1] else 'notice' }}">{{ notice[0] }}</p>{% endif %}
+
 <div class="card">
   <label>Sociabuzz webhook URL — paste this into sociabuzz's webhook settings</label>
   <code class="url">{{ webhook_url }}</code>
   <label>OBS overlay URL — add this as a Browser Source in OBS</label>
   <code class="url">{{ overlay_url }}</code>
+  <p class="hint">In OBS, tick <b>"Control audio via OBS"</b> on the Browser Source so you hear the sound and voice.
+    Keep these URLs private. If one was shown on stream, generate a new one — the old URL stops working immediately.</p>
+  <div class="actions">
+    <form method="post" action="/dashboard/settings/test-alert">
+      <button type="submit" class="btn">Send test alert</button>
+    </form>
+    <form method="post" action="/dashboard/settings/regenerate/webhook"
+      onsubmit="return confirm('Generate a new webhook URL? You must update it in sociabuzz.')">
+      <button type="submit">New webhook URL</button>
+    </form>
+    <form method="post" action="/dashboard/settings/regenerate/overlay"
+      onsubmit="return confirm('Generate a new overlay URL? You must update your OBS Browser Source.')">
+      <button type="submit">New overlay URL</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top: 0;">Alert</h2>
+  <form method="post" action="/dashboard/settings/alert" enctype="multipart/form-data">
+    <label for="alert_duration_seconds">Show each alert for at least (seconds)</label>
+    <input type="number" id="alert_duration_seconds" name="alert_duration_seconds"
+      min="3" max="60" value="{{ user.alert_duration_seconds }}" required>
+
+    <label for="sound_choice">Sound</label>
+    <select id="sound_choice" name="sound_choice">
+      <option value="none" {% if sound_choice == "none" %}selected{% endif %}>No sound</option>
+      {% for key, name in builtin_sounds.items() %}
+      <option value="builtin:{{ key }}" {% if sound_choice == "builtin:" ~ key %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+      <option value="url" {% if sound_choice == "url" %}selected{% endif %}>From a link…</option>
+      <option value="upload" {% if sound_choice == "upload" %}selected{% endif %}>Upload my own…</option>
+    </select>
+    <div id="sound-url-field" hidden>
+      <label for="sound_url">Sound link (https://…)</label>
+      <input type="url" id="sound_url" name="sound_url"
+        value="{{ user.alert_sound_url if sound_choice == 'url' else '' }}">
+    </div>
+    <div id="sound-file-field" hidden>
+      <label for="sound_file">Sound file (.mp3, .wav or .ogg, max 1 MB){% if sound_choice == "upload" %} — leave empty to keep your current file{% endif %}</label>
+      <input type="file" id="sound_file" name="sound_file" accept=".mp3,.wav,.ogg,audio/*">
+    </div>
+
+    <label for="alert_volume">Volume (sound and voice): <span id="volume-value">{{ user.alert_volume }}</span>%</label>
+    <input type="range" id="alert_volume" name="alert_volume" min="0" max="100" value="{{ user.alert_volume }}">
+    <div class="actions" style="margin-bottom: 0.75rem;">
+      <button type="button" id="sound-preview-btn">▶ Play sound</button>
+    </div>
+
+    <label class="word-pick"><input type="checkbox" name="tts_enabled" value="true"
+      {% if user.tts_enabled %}checked{% endif %}> Read donations aloud (text-to-speech)</label>
+    <label for="tts_min_amount" style="margin-top: 0.5rem;">Only read donations of at least (Rp, 0 = all)</label>
+    <input type="number" id="tts_min_amount" name="tts_min_amount" min="0" step="1000" value="{{ user.tts_min_amount }}">
+
+    <button type="submit" class="btn">Save alert settings</button>
+  </form>
 </div>
 
 <div class="card">
   <h2 style="margin-top: 0;">Overlay design</h2>
-  <p style="color: var(--muted); font-size: 0.85rem;">
-    Paste HTML/CSS for your alert box. Use
+  <label for="preset-select">Start from a ready-made style</label>
+  <div class="inline-form" style="margin-bottom: 0.75rem;">
+    <select id="preset-select">
+      {% for name in presets %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+    </select>
+    <button type="button" id="use-preset-btn">Use this style</button>
+  </div>
+  <p class="hint">
+    Or edit the HTML/CSS yourself. Use
     <code>{% raw %}{{supporter}}{% endraw %}</code>,
     <code>{% raw %}{{amount}}{% endraw %}</code>, and
     <code>{% raw %}{{message}}{% endraw %}</code> anywhere — they're replaced
-    with the real donation details each time an alert fires.
+    with the real donation details each time an alert fires. Remember to press Save.
   </p>
   <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
     <form method="post" action="/dashboard/settings/overlay-template" style="flex: 1 1 320px;">
-      <textarea id="overlay-template-input" name="overlay_template" rows="10"
+      <textarea id="overlay-template-input" name="overlay_template" rows="10" maxlength="{{ max_template_length }}"
         style="width: 100%; font-family: ui-monospace, monospace; font-size: 0.85rem;">{{ overlay_template }}</textarea>
       <div class="actions" style="margin-top: 0.5rem;">
         <button type="submit" class="btn">Save</button>
-        <button type="button" id="reset-template-btn" data-default="{{ default_template }}">Reset to default</button>
         <button type="button" id="ai-prompt-btn">Prompt for AI</button>
       </div>
     </form>
     <div style="flex: 1 1 320px;">
-      <iframe id="overlay-preview-frame" sandbox
-        style="width: 100%; height: 220px; border: 1px solid var(--border); border-radius: 8px; background: #0b0d11;"></iframe>
+      <iframe id="overlay-preview-frame" sandbox title="Overlay preview"
+        style="width: 100%; height: 220px; border: 1px solid var(--border); border-radius: 8px; background: #3a404a;"></iframe>
+      <button type="button" id="replay-preview-btn" style="margin-top: 0.5rem;">↻ Replay animation</button>
     </div>
   </div>
 </div>
 
+<div class="card">
+  <h2 style="margin-top: 0;">Change password</h2>
+  <form method="post" action="/dashboard/settings/password">
+    <label for="current_password">Current password</label>
+    <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
+    <label for="new_password">New password (at least 8 characters)</label>
+    <input type="password" id="new_password" name="new_password" required minlength="8" autocomplete="new-password">
+    <button type="submit" class="btn">Change password</button>
+  </form>
+</div>
+
+<script type="application/json" id="presets-data">{{ presets | tojson }}</script>
 <script>
+  const presets = JSON.parse(document.getElementById("presets-data").textContent);
   const templateInput = document.getElementById("overlay-template-input");
-  const resetBtn = document.getElementById("reset-template-btn");
   const aiPromptBtn = document.getElementById("ai-prompt-btn");
   const previewFrame = document.getElementById("overlay-preview-frame");
   let debounceTimer = null;
+  let lastRendered = "";
 
+  // --- Alert settings ---
+  const soundChoice = document.getElementById("sound_choice");
+  const soundUrlField = document.getElementById("sound-url-field");
+  const soundFileField = document.getElementById("sound-file-field");
+  const volumeInput = document.getElementById("alert_volume");
+  const currentSoundUrl = {{ user.alert_sound_url | tojson }};
+
+  function updateSoundFields() {
+    soundUrlField.hidden = soundChoice.value !== "url";
+    soundFileField.hidden = soundChoice.value !== "upload";
+  }
+  soundChoice.addEventListener("change", updateSoundFields);
+  updateSoundFields();
+
+  volumeInput.addEventListener("input", () => {
+    document.getElementById("volume-value").textContent = volumeInput.value;
+  });
+
+  document.getElementById("sound-preview-btn").addEventListener("click", () => {
+    const choice = soundChoice.value;
+    let url = null;
+    if (choice.startsWith("builtin:")) url = `/static/sounds/${choice.slice(8)}.wav`;
+    else if (choice === "url") url = document.getElementById("sound_url").value;
+    else if (choice === "upload") {
+      const file = document.getElementById("sound_file").files[0];
+      url = file ? URL.createObjectURL(file) : currentSoundUrl;
+    }
+    if (!url) return;
+    const audio = new Audio(url);
+    audio.volume = volumeInput.value / 100;
+    audio.play();
+  });
+
+  // --- Overlay design ---
   const AI_PROMPT = `I'm building a custom HTML donation-alert overlay for OBS. Please generate an HTML/CSS snippet (no <html>, <head>, or <body> tags -- just the inner markup and an optional <style> block) for a donation alert box, with these requirements:
 
-- Use the literal placeholder tokens {% raw %}{{supporter}}, {{amount}}, and {{message}}{% endraw %} wherever the donor's name, donation amount, and donation message should appear. They get substituted automatically -- don't treat them as variables or wrap them in quotes.
-- The snippet is inserted into a div with id="content", inside an outer div with id="alert" that already provides: fixed position at the bottom-center of the screen, a dark semi-transparent rounded box (background, padding, border-radius, box-shadow), and an automatic fade-in/fade-out animation (shows for about 8 seconds, no JavaScript required). You don't need to recreate any of that -- just style what goes inside it.
+- Use the literal placeholder tokens {% raw %}{{supporter}}, {{amount}}, and {{message}}{% endraw %} wherever the donor's name, donation amount, and donation message should appear. They get substituted automatically -- don't treat them as variables or wrap them in quotes. The amount is already formatted, e.g. "Rp50.000".
+- The snippet is inserted into a div with id="content", inside an outer div with id="alert" that already provides: fixed position at the bottom-center of the screen, a dark semi-transparent rounded box (background, padding, border-radius, box-shadow), and an automatic fade-in/fade-out animation (no JavaScript required). You don't need to recreate any of that -- just style what goes inside it.
 - If you want to fully replace the outer box's look (different background, no padding, different position, etc.), you can include a <style> block that targets #alert directly -- it will override the defaults.
-- Do not include <script> tags -- JavaScript will not execute in this overlay, so everything must be achievable with HTML and CSS only (CSS animations/transitions are fine).
+- Do not include <script> tags or inline event handlers (onclick, onerror...) -- JavaScript is blocked in this overlay, so everything must be achievable with HTML and CSS only (CSS animations/transitions are fine).
 - Keep it reasonably compact -- the box works best around 280-480px wide.
 
 Please return just the HTML/CSS snippet, ready to paste directly into a "custom overlay template" field.`;
@@ -76,27 +188,20 @@ Please return just the HTML/CSS snippet, ready to paste directly into a "custom 
     });
   });
 
+  // Uses the same overlay.css as the real OBS overlay; the keyframe replays the
+  // fade-in each time the preview reloads.
   function wrapPreview(innerHtml) {
-    return `<!doctype html><html><head><style>
-      html, body { margin: 0; background: #0b0d11; }
-      #alert {
-        font-family: system-ui, sans-serif;
-        position: absolute;
-        bottom: 1rem;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(15, 18, 22, 0.92);
-        color: #fff;
-        border-radius: 12px;
-        padding: 1rem 1.5rem;
-        min-width: 280px;
-        max-width: 480px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-      }
-      #alert .supporter { font-weight: 600; font-size: 1.1rem; }
-      #alert .amount { color: #5b8cff; margin-left: 0.5rem; }
-      #alert .message { margin-top: 0.4rem; font-size: 0.95rem; }
-    </style></head><body><div id="alert">${innerHtml}</div></body></html>`;
+    return `<!doctype html><html><head>
+      <link rel="stylesheet" href="${location.origin}/static/overlay.css">
+      <style>
+        html, body { background: #3a404a; }  /* mid-grey, so both dark and light styles stand out */
+        #alert.visible { animation: preview-in 0.3s ease; }
+        @keyframes preview-in { from { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+      </style></head><body><div id="alert" class="visible"><div id="content">${innerHtml}</div></div></body></html>`;
+  }
+
+  function showPreview() {
+    previewFrame.srcdoc = wrapPreview(lastRendered);
   }
 
   async function updatePreview() {
@@ -105,8 +210,8 @@ Please return just the HTML/CSS snippet, ready to paste directly into a "custom 
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: "template=" + encodeURIComponent(templateInput.value),
     });
-    const rendered = await response.text();
-    previewFrame.srcdoc = wrapPreview(rendered);
+    lastRendered = await response.text();
+    showPreview();
   }
 
   templateInput.addEventListener("input", () => {
@@ -114,10 +219,12 @@ Please return just the HTML/CSS snippet, ready to paste directly into a "custom 
     debounceTimer = setTimeout(updatePreview, 300);
   });
 
-  resetBtn.addEventListener("click", () => {
-    templateInput.value = resetBtn.dataset.default;
+  document.getElementById("use-preset-btn").addEventListener("click", () => {
+    templateInput.value = presets[document.getElementById("preset-select").value];
     updatePreview();
   });
+
+  document.getElementById("replay-preview-btn").addEventListener("click", showPreview);
 
   updatePreview();
 </script>

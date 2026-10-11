@@ -1,4 +1,4 @@
-"""Extract candidate gambling-promo patterns from a confirmed message."""
+"""Learn gambling-promo patterns from words a user picked out of a confirmed message."""
 
 from sqlalchemy.orm import Session
 
@@ -6,7 +6,7 @@ from app.classifier.normalize import words
 from app.classifier.store import reinforce_pattern
 from app.models import Message
 
-_MIN_TOKEN_LEN = 3
+_MIN_TOKEN_LEN = 4
 
 _STOPWORDS = {
     # Indonesian filler/common words
@@ -32,6 +32,9 @@ def extract_candidate_patterns(raw_message: str) -> list[str]:
     return candidates
 
 
-def learn_from_confirmation(session: Session, message: Message) -> None:
-    for pattern_text in extract_candidate_patterns(message.raw_message):
-        reinforce_pattern(session, pattern_text, message.user_id)
+def learn_from_confirmation(session: Session, message: Message, chosen: list[str]) -> None:
+    # Only learn words that actually appear in the message, never arbitrary form input.
+    candidates = extract_candidate_patterns(message.raw_message)
+    for pattern_text in candidates:
+        if pattern_text in chosen:
+            reinforce_pattern(session, pattern_text, message.user_id)

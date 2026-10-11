@@ -14,12 +14,16 @@ shared across all users on the same deployment.
   digits, inserted separators, repeated characters) and checked against a
   shared, growing list of known gambling-promo patterns.
 - Anything not confidently matched is pushed live to your OBS overlay
-  (`/overlay/<your-overlay-token>`) and logged.
+  (`/overlay/<your-overlay-token>`) and logged. Each streamer picks the
+  alert's look (ready-made styles or custom HTML/CSS), sound, duration and
+  optional text-to-speech in `/dashboard/settings`. In OBS, tick "Control
+  audio via OBS" on the Browser Source to hear the sound and voice.
 - Confidently-matched messages are suppressed from the overlay and queued in
   your dashboard for review.
-- Confirming a message as gambling extracts its distinctive word(s) and adds
-  them to the shared pattern store — the filter gets better for everyone on
-  future messages.
+- When confirming a message as gambling, the streamer ticks which of its
+  words are gambling promo; those are added to the shared pattern store — the
+  filter gets better for everyone on future messages. Admins can review and
+  delete patterns at `/admin/patterns`.
 
 ## Running locally with Docker
 
@@ -50,3 +54,15 @@ pytest
 Point a real domain's DNS at your VPS, set `DOMAIN=yourdomain.com` in `.env`
 (Caddy will provision HTTPS automatically), and run `docker compose up -d
 --build`. The SQLite database persists in the `db-data` Docker volume.
+
+### Backups
+
+Snapshot the database (keeps the newest 7 in `/data/backups` inside the
+volume). Run it nightly from the host's crontab:
+
+```
+0 4 * * * cd /path/to/antijudolinator && docker compose exec -T app python -m app.backup
+```
+
+Copy `/data/backups` off the server occasionally too — a backup on the same
+disk won't survive losing the VPS.
